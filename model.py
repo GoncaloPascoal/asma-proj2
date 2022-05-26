@@ -13,10 +13,18 @@ class NSAgent(Agent):
         self.size = size
         self.trail = trail # binary
     
+    def move(self):
+        possible_steps = self.model.grid.get_neighborhood(
+            self.pos, moore=True, include_center=False
+        )
+        new_position = self.random.choice(possible_steps)
+        self.model.grid.move_agent(self, new_position)
+        print("Agent " + str(self.unique_id) + " moved position to " + str(new_position))
 
     def step(self):
         # Agent's step
-        print("Hi, I'm agent " + str(self.unique_id) + ".")
+        self.move()
+        # print("Hi, I'm agent " + str(self.unique_id) + ".")
 
         
 
@@ -42,4 +50,5 @@ class NSModel(Model):
     
     def step(self):
         """Advance the model by one step"""
+        print("Stepping model!")
         self.schedule.step()

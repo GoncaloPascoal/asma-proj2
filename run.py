@@ -3,5 +3,7 @@
 # temporary
 from model import NSModel
 
-empty_model = NSModel(10)
-empty_model.step()
+model = NSModel(10, 10, 10)
+
+for i in  range(10):
+    model.step()

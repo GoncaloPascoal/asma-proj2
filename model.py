@@ -55,14 +55,15 @@ class NSAgent(Agent):
                         
                     else:           # eats whole food
                         self.livesToNextDay += 1
-                        self.grid.remove_agent(other) # food no longer exists
+                        self.model.killAgents.append(self)  # food no longer exists
+                        # self.grid.remove_agent(other)     # this line probably would not work
                 
                 # living being is in cell with another living being
                 elif self.agentType == 2 and other.agentType == 2:
                     if self.size > other.size: # if agent is bigger than other, eat it
                         self.size += 1
                         self.daysToLiveBuffer += other.size
-                        self.grid.remove_agent(other)
+                        self.model.killAgents.append(other)
 
         # Make the next move
         self.move()
@@ -80,6 +81,7 @@ class NSModel(Model):
         self.num_agents = N
         self.grid = MultiGrid(width, height, False)
         self.schedule = RandomActivation(self)
+        self.killAgents = []
 
         # Create agents
         for i in range(self.num_agents):
@@ -99,3 +101,8 @@ class NSModel(Model):
         # 
 
         self.schedule.step()
+
+        for dead in self.killAgents:
+            self.grid.remove_agent(dead)
+            self.schedule.remove(dead)
+            self.killAgents.remove(dead)

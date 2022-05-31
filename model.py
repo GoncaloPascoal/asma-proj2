@@ -32,12 +32,12 @@ class Organism(Agent):
         print(f'Agent {self.unique_id} moved to position {new_pos}')
     
     def eat(self, amount: float):
-        needed_for_survival = 1.0 - prob_survival
+        needed_for_survival = 1.0 - self.prob_survival
         used_for_survival = min(amount, needed_for_survival)
         amount -= used_for_survival
         self.prob_survival += used_for_survival
 
-        needed_for_replication = 1.0 - prob_replication
+        needed_for_replication = 1.0 - self.prob_replication
         used_for_replication = min(amount, needed_for_replication)
         self.prob_replication += used_for_replication
 
@@ -46,12 +46,12 @@ class Organism(Agent):
             self.eat(amount)
             food.amount -= amount
             if food.amount <= 0:
-                self.model.agents_to_remove.append(food)
+                self.model.agents_to_remove.add(food)
 
     def eat_organism(self, organism: Agent):
         if self.prob_replication < 1.0:
             self.eat(1.0)
-            self.model.agents_to_remove.append(organism)
+            self.model.agents_to_remove.add(organism)
 
     def step(self):
         if self in self.model.agents_to_remove:
@@ -79,27 +79,59 @@ class Organism(Agent):
         self.move()
 
 class NSModel(Model):
-    def __init__(self, num_agents: int, width: int, height: int) -> None:
+    STEPS_PER_GENERATION = 150
+
+    def __init__(self, num_agents: int, width: int, height: int, food_per_generation: int = 10) -> None:
         self.num_agents = num_agents
         self.grid = MultiGrid(width, height, torus=False)
+        self.food_per_generation = food_per_generation
         self.schedule = RandomActivation(self)
         self.agents_to_remove = set()
+        self.step_count = 0
 
         # Create agents
         for i in range(self.num_agents):
-            a = Organism(i, self)
-            self.schedule.add(a)
+            agent = Organism(i, self)
+            self.schedule.add(agent)
 
             # Add each agent to a random grid cell
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
-            self.grid.place_agent(a, (x, y)) # Adds the coordinate to the agent automatically
+            self.grid.place_agent(agent, (x, y)) # Adds the coordinate to the agent automatically
+
+        self.place_food()
+
+    def remove_agent(self, agent: Agent):
+        self.grid.remove_agent(agent)
+        self.schedule.remove(agent)
+
+    def place_food(self):
+        cells = [(x, y) for x in range(self.grid.width) for y in range(self.grid.height)]
+        cells = self.random.sample(cells, self.food_per_generation)
+
+        for i in range(self.food_per_generation):
+            food = Food(1000 + i, self)
+            self.schedule.add(food)
+            self.grid.place_agent(food, cells[i])
+
+    def new_generation(self):
+        for agent in self.schedule.agents:
+            if isinstance(agent, Food):
+                self.remove_agent(agent)
+            elif isinstance(agent, Organism):
+                survives = self.random.random() <= agent.prob_survival
+                replicates = self.random.random() <= agent.prob_replication
+
+                if not survives:
+                    self.remove_agent(agent)
+
+                # TODO: replication logic
 
     def step(self):
-        print("Stepping model!")
         self.schedule.step()
 
         for agent in self.agents_to_remove:
-            self.grid.remove_agent(agent)
-            self.schedule.remove(agent)
+            self.remove_agent(agent)
         self.agents_to_remove.clear()
+
+        self.step_count = (self.step_count + 1) % NSModel.STEPS_PER_GENERATION

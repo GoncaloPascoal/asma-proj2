@@ -1,9 +1,4 @@
-# Python script that will run the model when invoked via mesa runserver
 
-# temporary
-from model import NSModel
+from server import server
 
-model = NSModel(10, 10, 10)
-
-for i in range(10):
-    model.step()
+server.launch()

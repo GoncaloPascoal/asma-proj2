@@ -22,6 +22,3 @@ server = ModularServer(
     'Natural Selection Model',
     {'num_agents': 10, 'width': 10, 'height': 10}
 )
-print(grid.render(server.model))
-server.launch()
-

@@ -25,8 +25,10 @@ class Organism(Agent):
         self.size = size
         self.trail = trail
 
-        self.energy = Organism.MAX_ENERGY
+        self.reset()
 
+    def reset(self):
+        self.energy = Organism.MAX_ENERGY
         self.prob_survival = 0.0
         self.prob_replication = 0.0
 
@@ -126,6 +128,17 @@ class NSModel(Model):
         self.schedule = RandomActivation(self)
         self.agents_to_remove = set()
 
+        self.border_cells = (
+            {(0, y) for y in range(self.grid.height)} |
+            {(x, 0) for x in range(self.grid.width)} |
+            {(self.grid.width - 1, y) for y in range(self.grid.height)} |
+            {(x, self.grid.height - 1) for x in range(self.grid.width)}
+        )
+        self.center_cells = (
+            {(x, y) for x in range(self.grid.width) for y in range(self.grid.height)} -
+            self.border_cells
+        )
+
         self.generation = 1
         self.step_count = 0
 
@@ -134,20 +147,23 @@ class NSModel(Model):
             agent = Organism(self)
             self.schedule.add(agent)
 
-            # Add each agent to a random grid cell
-            x = self.random.randrange(self.grid.width)
-            y = self.random.randrange(self.grid.height)
-            self.grid.place_agent(agent, (x, y)) # Adds the coordinate to the agent automatically
-
+        self.place_agents(init=True)
         self.place_food()
 
     def remove_agent(self, agent: Agent):
         self.grid.remove_agent(agent)
         self.schedule.remove(agent)
 
+    def place_agents(self, init=False):
+        for agent in self.schedule.agents:
+            pos = self.random.sample(self.border_cells, 1)[0]
+            if init:
+                self.grid.place_agent(agent, pos)
+            else:
+                self.grid.move_agent(agent, pos)
+
     def place_food(self):
-        cells = [(x, y) for x in range(self.grid.width) for y in range(self.grid.height)]
-        cells = self.random.sample(cells, self.food_per_generation)
+        cells = self.random.sample(self.center_cells, self.food_per_generation)
 
         for i in range(self.food_per_generation):
             food = Food(self)
@@ -165,7 +181,14 @@ class NSModel(Model):
                 if not survives:
                     self.remove_agent(agent)
                 elif replicates:
-                    self.schedule.add(agent.replicate())
+                    replica = agent.replicate()
+                    self.schedule.add(replica)
+                    self.grid.place_agent(replica, (0, 0))
+
+                agent.reset()
+
+        self.place_agents()
+        self.place_food()
         self.generation += 1
 
     def step(self):

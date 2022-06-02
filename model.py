@@ -1,4 +1,5 @@
 
+from math import sqrt
 from typing import Tuple
 
 from mesa import Agent, Model
@@ -7,6 +8,9 @@ from mesa.time import RandomActivation
 
 def squared_distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
     return pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2)
+
+def distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
+    return sqrt(squared_distance(pos1, pos2))
 
 def clamp(val: int, lower: int, upper: int) -> int:
     return max(lower, min(val, upper))
@@ -17,7 +21,7 @@ class Food(Agent):
         self.amount = amount
 
 class Organism(Agent):
-    MAX_ENERGY: int = 25
+    MAX_ENERGY: float = 50.0
 
     MIN_SPEED: int = 1
     MAX_SPEED: int = 5
@@ -69,7 +73,11 @@ class Organism(Agent):
         else:
             next_pos = self.random.choice(adjacent)
 
+        self.spend_energy(distance(self.pos, next_pos))
         self.model.grid.move_agent(self, next_pos)
+
+    def spend_energy(self, distance_moved: float):
+        self.energy -= pow(self.size, 3) * pow(self.speed, 2) * distance_moved + self.awareness
 
     @staticmethod
     def can_eat(organism1, organism2) -> bool:
@@ -119,9 +127,10 @@ class Organism(Agent):
                     if self.size > other.size: # If agent is bigger than other, eat it
                         self.eat_organism(other)
 
-        # Make the next move
-        self.move()
-    
+        # Make the next move if agent still has energy left
+        if self.energy > 0:
+            self.move()
+
     def replicate(self):
         speed = self.speed
         awareness = self.awareness

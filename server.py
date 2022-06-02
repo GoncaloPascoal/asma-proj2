@@ -28,7 +28,7 @@ def agent_portrayal(agent: Agent):
         portrayal['xAlign'] = 0.8
         portrayal['yAlign'] = 0.8
 
-        for attr in ['speed', 'awareness', 'size', 'prob_survival', 'prob_replication']:
+        for attr in ['speed', 'awareness', 'size', 'energy', 'prob_survival', 'prob_replication']:
             portrayal[attr] = agent.__dict__.get(attr)
 
     return portrayal

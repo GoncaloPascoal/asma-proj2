@@ -1,8 +1,12 @@
 
-from mesa import Agent
+from mesa import Agent, Model
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
+from mesa.visualization.TextVisualization import TextData
 from model import Food, Organism, NSModel
+
+def generation(model: Model) -> str:
+    return f'Generation: {model.generation}'
 
 def agent_portrayal(agent: Agent):
     portrayal = {
@@ -32,7 +36,7 @@ def agent_portrayal(agent: Agent):
 grid = CanvasGrid(agent_portrayal, 10, 10, 500, 500)
 server = ModularServer(
     NSModel,
-    [grid],
+    [generation, grid],
     'Natural Selection Model',
     {'num_agents': 10, 'width': 10, 'height': 10}
 )

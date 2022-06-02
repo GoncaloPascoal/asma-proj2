@@ -1,17 +1,29 @@
+
+from typing import Tuple
+
 from mesa import Agent, Model
 from mesa.space import MultiGrid
 from mesa.time import RandomActivation
 
+def next_id():
+    agent_id = next_id.val
+    next_id.val += 1
+    return agent_id
+next_id.val = 0
+
+def squared_distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
+    return pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2)
+
 class Food(Agent):
-    def __init__(self, unique_id: int, model: Model, amount: float = 1.0):
-        super().__init__(unique_id, model)
+    def __init__(self, model: Model, amount: float = 1.0):
+        super().__init__(next_id(), model)
         self.amount = amount
 
 class Organism(Agent):
     MAX_ENERGY: int = 25
 
-    def __init__(self, unique_id: int, model: Model, speed = 1, awareness = 1, size = 1, trail: bool = False):
-        super().__init__(unique_id, model)
+    def __init__(self, model: Model, speed = 1, awareness = 1, size = 1, trail: bool = False):
+        super().__init__(next_id(), model)
 
         # Genes
         self.speed = speed
@@ -25,12 +37,38 @@ class Organism(Agent):
         self.prob_replication = 0.0
 
     def move(self):
-        adjacent = self.model.grid.get_neighborhood(self.pos, moore=True)
-        new_pos = self.random.choice(adjacent)
-        self.model.grid.move_agent(self, new_pos)
+        closest_threat, closest_food = None, None
+        next_pos = None
 
-        print(f'Agent {self.unique_id} moved to position {new_pos}')
-    
+        adjacent = self.model.grid.get_neighborhood(self.pos, moore=True)
+        visible = self.model.grid.get_neighborhood(self.pos, moore=True, radius=self.awareness)
+
+        # Determine closest threat and closest source of food
+        for agent in self.model.grid.iter_cell_list_contents(visible):
+            if isinstance(agent, Organism) and Organism.can_eat(agent, self):
+                if not closest_threat or squared_distance(self.pos, closest_threat.pos) < squared_distance(self.pos, agent.pos):
+                    closest_threat = agent
+            elif isinstance(agent, Food):
+                if not closest_food or squared_distance(self.pos, closest_food.pos) < squared_distance(self.pos, agent.pos):
+                    closest_food = agent
+
+        if closest_threat:
+            for pos in adjacent:
+                if not next_pos or squared_distance(pos, closest_threat.pos) > squared_distance(next_pos, closest_threat.pos):
+                    next_pos = pos
+        elif closest_food:
+            for pos in adjacent:
+                if not next_pos or squared_distance(pos, closest_food.pos) < squared_distance(next_pos, closest_food.pos):
+                    next_pos = pos
+        else:
+            next_pos = self.random.choice(adjacent)
+
+        self.model.grid.move_agent(self, next_pos)
+
+    @staticmethod
+    def can_eat(organism1, organism2) -> bool:
+        return organism1.size > organism2.size
+
     def eat(self, amount: float):
         needed_for_survival = 1.0 - self.prob_survival
         used_for_survival = min(amount, needed_for_survival)
@@ -77,21 +115,29 @@ class Organism(Agent):
 
         # Make the next move
         self.move()
+    
+    def replicate(self):
+        return Organism(self.model, self.speed, self.awareness, self.size,
+            self.trail)
 
 class NSModel(Model):
-    STEPS_PER_GENERATION = 150
+    STEPS_PER_GENERATION = 25
 
     def __init__(self, num_agents: int, width: int, height: int, food_per_generation: int = 10) -> None:
+        super().__init__()
+
         self.num_agents = num_agents
         self.grid = MultiGrid(width, height, torus=False)
         self.food_per_generation = food_per_generation
         self.schedule = RandomActivation(self)
         self.agents_to_remove = set()
+
+        self.generation = 1
         self.step_count = 0
 
         # Create agents
-        for i in range(self.num_agents):
-            agent = Organism(i, self)
+        for _ in range(self.num_agents):
+            agent = Organism(self)
             self.schedule.add(agent)
 
             # Add each agent to a random grid cell
@@ -110,7 +156,7 @@ class NSModel(Model):
         cells = self.random.sample(cells, self.food_per_generation)
 
         for i in range(self.food_per_generation):
-            food = Food(1000 + i, self)
+            food = Food(self)
             self.schedule.add(food)
             self.grid.place_agent(food, cells[i])
 
@@ -124,8 +170,9 @@ class NSModel(Model):
 
                 if not survives:
                     self.remove_agent(agent)
-
-                # TODO: replication logic
+                elif replicates:
+                    self.schedule.add(agent.replicate())
+        self.generation += 1
 
     def step(self):
         self.schedule.step()
@@ -135,3 +182,6 @@ class NSModel(Model):
         self.agents_to_remove.clear()
 
         self.step_count = (self.step_count + 1) % NSModel.STEPS_PER_GENERATION
+
+        if self.step_count == 0:
+            self.new_generation()

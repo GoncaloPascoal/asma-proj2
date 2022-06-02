@@ -5,25 +5,19 @@ from mesa import Agent, Model
 from mesa.space import MultiGrid
 from mesa.time import RandomActivation
 
-def next_id():
-    agent_id = next_id.val
-    next_id.val += 1
-    return agent_id
-next_id.val = 0
-
 def squared_distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
     return pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2)
 
 class Food(Agent):
     def __init__(self, model: Model, amount: float = 1.0):
-        super().__init__(next_id(), model)
+        super().__init__(model.next_id(), model)
         self.amount = amount
 
 class Organism(Agent):
     MAX_ENERGY: int = 25
 
     def __init__(self, model: Model, speed = 1, awareness = 1, size = 1, trail: bool = False):
-        super().__init__(next_id(), model)
+        super().__init__(model.next_id(), model)
 
         # Genes
         self.speed = speed

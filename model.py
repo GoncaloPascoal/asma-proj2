@@ -46,7 +46,7 @@ class Organism(Agent):
         closest_threat, closest_food = None, None
         next_pos = None
 
-        adjacent = self.model.grid.get_neighborhood(self.pos, moore=True)
+        adjacent = self.model.grid.get_neighborhood(self.pos, moore=True, radius=self.speed)
         visible = self.model.grid.get_neighborhood(self.pos, moore=True, radius=self.awareness)
 
         # Determine closest threat and closest source of food

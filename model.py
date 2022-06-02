@@ -8,6 +8,9 @@ from mesa.time import RandomActivation
 def squared_distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
     return pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2)
 
+def clamp(val: int, lower: int, upper: int) -> int:
+    return max(lower, min(val, upper))
+
 class Food(Agent):
     def __init__(self, model: Model, amount: float = 1.0):
         super().__init__(model.next_id(), model)
@@ -15,6 +18,13 @@ class Food(Agent):
 
 class Organism(Agent):
     MAX_ENERGY: int = 25
+
+    MIN_SPEED: int = 1
+    MAX_SPEED: int = 5
+    MIN_AWARENESS: int = 0
+    MAX_AWARENESS: int = 5
+    MIN_SIZE: int = 1
+    MAX_SIZE: int = 5
 
     def __init__(self, model: Model, speed = 1, awareness = 1, size = 1, trail: bool = False):
         super().__init__(model.next_id(), model)
@@ -113,18 +123,42 @@ class Organism(Agent):
         self.move()
     
     def replicate(self):
-        return Organism(self.model, self.speed, self.awareness, self.size,
-            self.trail)
+        speed = self.speed
+        awareness = self.awareness
+        size = self.size
+
+        # Speed mutation
+        if self.model.random.random() <= self.model.speed_mutation_rate:
+            speed += 1 if self.model.random.randint(0, 1) else -1
+            speed = clamp(speed, Organism.MIN_SPEED, Organism.MAX_SPEED)
+        
+        # Awareness mutation
+        if self.model.random.random() <= self.model.awareness_mutation_rate:
+            awareness += 1 if self.model.random.randint(0, 1) else -1
+            awareness = clamp(awareness, Organism.MIN_AWARENESS, Organism.MAX_AWARENESS)
+
+        # Size mutation
+        if self.model.random.random() <= self.model.speed_mutation_rate:
+            size += 1 if self.model.random.randint(0, 1) else -1
+            size = clamp(size, Organism.MIN_SIZE, Organism.MAX_SIZE)
+
+        return Organism(self.model, speed, awareness, size, self.trail)
 
 class NSModel(Model):
     STEPS_PER_GENERATION = 25
 
-    def __init__(self, num_agents: int, width: int, height: int, food_per_generation: int = 10) -> None:
+    def __init__(self, num_agents: int, width: int, height: int,
+            food_per_generation: int = 10, speed_mutation_rate: float = 0.1,
+            awareness_mutation_rate: float = 0.05, size_mutation_rate: float = 0.05) -> None:
         super().__init__()
 
-        self.num_agents = num_agents
         self.grid = MultiGrid(width, height, torus=False)
         self.food_per_generation = food_per_generation
+
+        self.speed_mutation_rate = speed_mutation_rate
+        self.awareness_mutation_rate = awareness_mutation_rate
+        self.size_mutation_rate = size_mutation_rate
+
         self.schedule = RandomActivation(self)
         self.agents_to_remove = set()
 
@@ -143,7 +177,7 @@ class NSModel(Model):
         self.step_count = 0
 
         # Create agents
-        for _ in range(self.num_agents):
+        for _ in range(num_agents):
             agent = Organism(self)
             self.schedule.add(agent)
 

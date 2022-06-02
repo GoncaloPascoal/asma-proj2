@@ -20,12 +20,12 @@ def agent_portrayal(agent: Agent):
     if isinstance(agent, Food):
         portrayal['Shape'] = 'circle'
         portrayal['Color'] = 'green'
-        portrayal['r'] = 0.25
+        portrayal['r'] = 0.25 * agent.amount
         portrayal['xAlign'] = 0.2
         portrayal['yAlign'] = 0.2
     elif isinstance(agent, Organism):
         w = 0.2 + 0.4 * (agent.size - Organism.MIN_SIZE) / (Organism.MAX_SIZE - Organism.MIN_SIZE)
-        h = 0.2 + 0.4 * agent.awareness / Organism.MAX_AWARENESS
+        h = 0.2 + 0.4 * (agent.awareness - Organism.MIN_AWARENESS) / (Organism.MAX_AWARENESS - Organism.MIN_AWARENESS)
 
         speed_rate = (agent.speed - Organism.MIN_SPEED) / (Organism.MAX_SPEED - Organism.MIN_SPEED)
 

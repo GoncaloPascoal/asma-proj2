@@ -12,7 +12,7 @@ def squared_distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
 def distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
     return sqrt(squared_distance(pos1, pos2))
 
-def clamp(val: int, lower: int, upper: int) -> int:
+def clamp(val, lower, upper):
     return max(lower, min(val, upper))
 
 class Food(Agent):
@@ -27,10 +27,12 @@ class Organism(Agent):
     MAX_SPEED: int = 5
     MIN_AWARENESS: int = 0
     MAX_AWARENESS: int = 5
-    MIN_SIZE: int = 1
-    MAX_SIZE: int = 5
+    MIN_SIZE: float = 0.5
+    MAX_SIZE: float = 2.0
+    MAX_SIZE_MUTATION = 0.2
 
-    def __init__(self, model: Model, speed = 1, awareness = 1, size = 1, trail: bool = False):
+    def __init__(self, model: Model, speed: int = 1, awareness: int = 1,
+            size: float = 1.0, trail: bool = False):
         super().__init__(model.next_id(), model)
 
         # Genes
@@ -81,7 +83,7 @@ class Organism(Agent):
 
     @staticmethod
     def can_eat(organism1, organism2) -> bool:
-        return organism1.size > organism2.size
+        return organism1.size / organism2.size > 1.15
 
     def eat(self, amount: float):
         needed_for_survival = 1.0 - self.prob_survival
@@ -148,7 +150,8 @@ class Organism(Agent):
 
         # Size mutation
         if self.model.random.random() <= self.model.speed_mutation_rate:
-            size += 1 if self.model.random.randint(0, 1) else -1
+            # Within [-MAX_SIZE_MUTATION, MAX_SIZE_MUTATION]
+            size += 2 * Organism.MAX_SIZE_MUTATION * self.model.random.random() - Organism.MAX_SIZE_MUTATION
             size = clamp(size, Organism.MIN_SIZE, Organism.MAX_SIZE)
 
         return Organism(self.model, speed, awareness, size, self.trail)
@@ -156,8 +159,8 @@ class Organism(Agent):
 class NSModel(Model):
     STEPS_PER_GENERATION = 25
 
-    def __init__(self, num_agents: int, width: int, height: int,
-            food_per_generation: int = 10, speed_mutation_rate: float = 0.1,
+    def __init__(self, num_agents: int = 10, width: int = 10, height: int = 10,
+            food_per_generation: int = 20, speed_mutation_rate: float = 0.1,
             awareness_mutation_rate: float = 0.05, size_mutation_rate: float = 0.05) -> None:
         super().__init__()
 

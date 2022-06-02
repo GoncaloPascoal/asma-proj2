@@ -21,7 +21,7 @@ class Food(Agent):
         self.amount = amount
 
 class Organism(Agent):
-    MAX_ENERGY: float = 50.0
+    MAX_ENERGY: float = 100.0
 
     MIN_SPEED: int = 1
     MAX_SPEED: int = 5
@@ -31,7 +31,7 @@ class Organism(Agent):
     MAX_SIZE: float = 2.0
     MAX_SIZE_MUTATION = 0.2
 
-    def __init__(self, model: Model, speed: int = 1, awareness: int = 1,
+    def __init__(self, model: Model, speed: int = 3, awareness: int = 1,
             size: float = 1.0, trail: bool = False):
         super().__init__(model.next_id(), model)
 
@@ -41,7 +41,11 @@ class Organism(Agent):
         self.size = size
         self.trail = trail
 
+        self.reset_move_ticks()
         self.reset()
+
+    def reset_move_ticks(self):
+        self.move_ticks = 1 + Organism.MAX_SPEED - self.speed
 
     def reset(self):
         self.energy = Organism.MAX_ENERGY
@@ -52,7 +56,7 @@ class Organism(Agent):
         closest_threat, closest_food = None, None
         next_pos = None
 
-        adjacent = self.model.grid.get_neighborhood(self.pos, moore=True, radius=self.speed)
+        adjacent = self.model.grid.get_neighborhood(self.pos, moore=True)
         visible = self.model.grid.get_neighborhood(self.pos, moore=True, radius=self.awareness)
 
         # Determine closest threat and closest source of food
@@ -75,11 +79,13 @@ class Organism(Agent):
         else:
             next_pos = self.random.choice(adjacent)
 
-        self.spend_energy(distance(self.pos, next_pos))
-        self.model.grid.move_agent(self, next_pos)
+        required_energy = self.move_energy(distance(self.pos, next_pos))
+        if self.energy >= required_energy:
+            self.energy -= required_energy
+            self.model.grid.move_agent(self, next_pos)
 
-    def spend_energy(self, distance_moved: float):
-        self.energy -= pow(self.size, 3) * pow(self.speed, 2) * distance_moved + self.awareness
+    def move_energy(self, distance_moved: float) -> float:
+        return pow(self.size, 3) * pow(self.speed, 2) * distance_moved + self.awareness
 
     @staticmethod
     def can_eat(organism1, organism2) -> bool:
@@ -129,9 +135,10 @@ class Organism(Agent):
                     if self.size > other.size: # If agent is bigger than other, eat it
                         self.eat_organism(other)
 
-        # Make the next move if agent still has energy left
-        if self.energy > 0:
+        self.move_ticks -= 1
+        if self.move_ticks == 0:
             self.move()
+            self.reset_move_ticks()
 
     def replicate(self):
         speed = self.speed
@@ -157,7 +164,7 @@ class Organism(Agent):
         return Organism(self.model, speed, awareness, size, self.trail)
 
 class NSModel(Model):
-    STEPS_PER_GENERATION = 25
+    STEPS_PER_GENERATION = 120
 
     def __init__(self, num_agents: int = 10, width: int = 10, height: int = 10,
             food_per_generation: int = 20, speed_mutation_rate: float = 0.1,

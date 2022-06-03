@@ -1,8 +1,9 @@
 
 from math import sqrt
+from statistics import mode
 from typing import Tuple
 
-from mesa import Agent, Model
+from mesa import Agent, DataCollector, Model
 from mesa.space import MultiGrid
 from mesa.time import RandomActivation
 
@@ -179,6 +180,10 @@ class NSModel(Model):
         self.size_mutation_rate = size_mutation_rate
 
         self.schedule = RandomActivation(self)
+        self.datacollector = DataCollector(
+            model_reporters={"Number": self.schedule.get_agent_count}
+        )
+
         self.agents_to_remove = set()
 
         self.border_cells = (
@@ -255,3 +260,5 @@ class NSModel(Model):
 
         if self.step_count == 0:
             self.new_generation()
+
+        self.datacollector.collect(self)

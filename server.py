@@ -2,7 +2,7 @@
 from matplotlib.colors import to_hex
 
 from mesa import Agent, Model
-from mesa.visualization.modules import CanvasGrid
+from mesa.visualization.modules import CanvasGrid, ChartModule
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.TextVisualization import TextData
 
@@ -46,9 +46,13 @@ def agent_portrayal(agent: Agent):
     return portrayal
 
 grid = CanvasGrid(agent_portrayal, 10, 10, 500, 500)
+chart = ChartModule(
+    [{"Label": "Number", "Color": "#0000FF"}], data_collector_name="datacollector"
+)
+
 server = ModularServer(
     NSModel,
-    [generation, grid],
+    [generation, grid, chart],
     'Natural Selection Model',
     {'num_agents': 10, 'width': 10, 'height': 10}
 )

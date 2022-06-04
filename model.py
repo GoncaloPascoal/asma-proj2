@@ -25,11 +25,14 @@ class Organism(Agent):
 
     MIN_SPEED: int = 1
     MAX_SPEED: int = 5
+    
     MIN_AWARENESS: int = 0
     MAX_AWARENESS: int = 5
+    
     MIN_SIZE: float = 0.5
     MAX_SIZE: float = 2.0
     MAX_SIZE_MUTATION = 0.2
+    SIZE_TO_EAT: float = 0.125
 
     def __init__(self, model: Model, speed: int = 3, awareness: int = 1,
             size: float = 1.0, trail: bool = False):
@@ -89,7 +92,7 @@ class Organism(Agent):
 
     @staticmethod
     def can_eat(organism1, organism2) -> bool:
-        return organism1.size / organism2.size > 1.15
+        return organism1.size / organism2.size > (1 + Organism.SIZE_TO_EAT)
 
     def eat(self, amount: float):
         needed_for_survival = 1.0 - self.prob_survival

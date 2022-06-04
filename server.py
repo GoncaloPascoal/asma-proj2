@@ -1,11 +1,12 @@
 
+import numpy as np
 from matplotlib.colors import to_hex
 
 from mesa import Agent, Model
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 
-from visualization import GenerationChartModule
+from visualization import GenerationChartModule, HistogramModule
 from model import Food, Organism, NSModel
 
 def generation(model: Model) -> str:
@@ -52,6 +53,7 @@ num_organisms = GenerationChartModule(
     [{'Label': 'Organisms', 'Color': '#0000FF'}],
     data_collector_name='dc_num_organisms'
 )
+
 properties = GenerationChartModule(
     [
         {'Label': 'Speed', 'Color': '#00AADD'},
@@ -65,9 +67,28 @@ trail_percentage = GenerationChartModule(
     data_collector_name='dc_num_organisms'
 )
 
+hist_speed = HistogramModule(
+    bins=list(range(Organism.MIN_SPEED, Organism.MAX_SPEED + 1)),
+    attribute='speed',
+    color='#00AADD'
+)
+hist_awareness = HistogramModule(
+    bins=list(range(Organism.MIN_AWARENESS, Organism.MAX_AWARENESS + 1)),
+    attribute='awareness',
+    color='#DDAA00'
+)
+hist_size = HistogramModule(
+    bins=list(np.arange(Organism.MIN_SIZE, Organism.MAX_SIZE + 0.125, 0.125)),
+    attribute='size',
+    color='#AA00DD'
+)
+
 server = ModularServer(
     NSModel,
-    [generation, grid, num_organisms, properties, trail_percentage],
+    [
+        generation, grid, num_organisms, properties, trail_percentage,
+        hist_speed, hist_awareness, hist_size
+    ],
     'Natural Selection Model',
     {'num_organisms': 10, 'width': 10, 'height': 10}
 )

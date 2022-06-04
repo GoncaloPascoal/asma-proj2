@@ -11,14 +11,22 @@ class HistogramModule(VisualizationElement):
     package_includes = [CHART_JS_FILE]
     local_includes = ['HistogramModule.js']
 
-    def __init__(self, bins, canvas_width: int, canvas_height: int, attribute: str):
+    def __init__(
+        self,
+        bins,
+        attribute: str,
+        canvas_width: int = 500,
+        canvas_height: int = 200,
+        color: str = '#DD2200'
+    ):
         self.bins = bins
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
         self.attribute = attribute
 
-        new_element = 'new HistogramModule({}, {}, {}, {})'.format(
-            bins, canvas_width, canvas_height, repr(attribute)
+        new_element = 'new HistogramModule({}, {}, {}, {}, {})'.format(
+            bins, canvas_width, canvas_height, repr(attribute.capitalize()),
+            repr(color)
         )
 
         self.js_code = 'elements.push(' + new_element + ');'

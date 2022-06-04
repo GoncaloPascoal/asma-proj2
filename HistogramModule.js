@@ -1,5 +1,5 @@
 
-const HistogramModule = function(bins, canvasWidth, canvasHeight, label) {
+const HistogramModule = function(bins, canvasWidth, canvasHeight, label, color) {
     const canvasTag = '<canvas width="' + canvasWidth + '" height="' +
         canvasHeight + '" style="border:1px dotted"></canvas>';
 
@@ -8,12 +8,27 @@ const HistogramModule = function(bins, canvasWidth, canvasHeight, label) {
 
     const context = canvas.getContext('2d');
 
+    const hexToRgb = function (hex, a = 1.0) {
+        if (hex.indexOf('#') != 0) {
+            return 'rgba(0,0,0,1.0)';
+        }
+
+        hex = hex.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+
+        return `rgba(${r},${g},${b},${a})`;
+    };
+
     const datasets = [{
         label: label,
-        fillColor: 'rgba(151,187,205,0.5)',
-        strokeColor: 'rgba(151,187,205,0.8)',
-        highlightFill: 'rgba(151,187,205,0.75)',
-        highlightStroke: 'rgba(151,187,205,1)',
+        backgroundColor: hexToRgb(color, 0.6),
+        borderColor: 'rgba(20,20,20,0.8)',
+        borderWidth: 2.0,
+        hoverBackgroundColor: hexToRgb(color, 0.8),
+        hoverBorderColor: 'rgba(20,20,20,1.0)',
+        hoverBorderWidth: 2.0,
         data: []
     }];
 

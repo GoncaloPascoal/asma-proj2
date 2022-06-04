@@ -113,6 +113,7 @@ class Organism(Agent):
         if self.prob_replication < 1.0:
             self.eat(1.0)
             self.model.agents_to_remove.add(organism)
+            self.model.num_organisms -= 1
 
     def step(self):
         if self in self.model.agents_to_remove:
@@ -167,11 +168,12 @@ class Organism(Agent):
 class NSModel(Model):
     STEPS_PER_GENERATION = 120
 
-    def __init__(self, num_agents: int = 10, width: int = 10, height: int = 10,
+    def __init__(self, num_organisms: int = 10, width: int = 10, height: int = 10,
             food_per_generation: int = 20, speed_mutation_rate: float = 0.1,
             awareness_mutation_rate: float = 0.05, size_mutation_rate: float = 0.05) -> None:
         super().__init__()
 
+        self.num_organisms = num_organisms
         self.grid = MultiGrid(width, height, torus=False)
         self.food_per_generation = food_per_generation
 
@@ -180,9 +182,10 @@ class NSModel(Model):
         self.size_mutation_rate = size_mutation_rate
 
         self.schedule = RandomActivation(self)
-        self.datacollector = DataCollector(
-            model_reporters={"Number": self.schedule.get_agent_count}
+        self.data_collector = DataCollector(
+            model_reporters={'Organisms': 'num_organisms'}
         )
+        self.data_collector.collect(self)
 
         self.agents_to_remove = set()
 
@@ -201,7 +204,7 @@ class NSModel(Model):
         self.step_count = 0
 
         # Create agents
-        for _ in range(num_agents):
+        for _ in range(num_organisms):
             agent = Organism(self)
             self.schedule.add(agent)
 
@@ -238,16 +241,20 @@ class NSModel(Model):
 
                 if not survives:
                     self.remove_agent(agent)
+                    self.num_organisms -= 1
                 elif replicates:
                     replica = agent.replicate()
                     self.schedule.add(replica)
                     self.grid.place_agent(replica, (0, 0))
+                    self.num_organisms += 1
 
                 agent.reset()
 
         self.place_agents()
         self.place_food()
         self.generation += 1
+
+        self.data_collector.collect(self)
 
     def step(self):
         self.schedule.step()
@@ -260,5 +267,3 @@ class NSModel(Model):
 
         if self.step_count == 0:
             self.new_generation()
-
-        self.datacollector.collect(self)

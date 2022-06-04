@@ -166,8 +166,9 @@ class Organism(Agent):
                     amount = other.amount
                     if self.trail:
                         amount = min(0.5, other.amount)
-                        self.food_positions.add(other.pos)
-                        self.trail_length = Organism.MAX_TRAIL_LENGTH
+                        if other.amount > 0.5:
+                            self.food_positions.add(other.pos)
+                            self.trail_length = Organism.MAX_TRAIL_LENGTH
                     self.eat_food(other, amount)
                 elif isinstance(other, Organism):
                     # Organism is in cell with another agent

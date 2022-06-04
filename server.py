@@ -46,13 +46,24 @@ def agent_portrayal(agent: Agent):
     return portrayal
 
 grid = CanvasGrid(agent_portrayal, 10, 10, 500, 500)
-chart = GenerationChartModule(
-    [{'Label': 'Organisms', 'Color': '#0000FF'}], data_collector_name='data_collector'
+
+# Charts
+num_organisms = GenerationChartModule(
+    [{'Label': 'Organisms', 'Color': '#0000FF'}],
+    data_collector_name='dc_num_organisms'
+)
+properties = GenerationChartModule(
+    [
+        {'Label': 'Speed', 'Color': '#00AADD'},
+        {'Label': 'Awareness', 'Color': '#DDAA00'},
+        {'Label': 'Size', 'Color': '#AA00DD'},
+    ],
+    data_collector_name='dc_properties'
 )
 
 server = ModularServer(
     NSModel,
-    [generation, grid, chart],
+    [generation, grid, num_organisms, properties],
     'Natural Selection Model',
     {'num_organisms': 10, 'width': 10, 'height': 10}
 )

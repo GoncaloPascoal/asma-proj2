@@ -182,11 +182,6 @@ class NSModel(Model):
         self.size_mutation_rate = size_mutation_rate
 
         self.schedule = RandomActivation(self)
-        self.data_collector = DataCollector(
-            model_reporters={'Organisms': 'num_organisms'}
-        )
-        self.data_collector.collect(self)
-
         self.agents_to_remove = set()
 
         self.border_cells = (
@@ -211,6 +206,20 @@ class NSModel(Model):
         self.place_agents(init=True)
         self.place_food()
 
+        # Initialize data collectors
+        self.dc_num_organisms = DataCollector(
+            model_reporters={'Organisms': 'num_organisms'}
+        )
+        self.dc_properties = DataCollector(
+            model_reporters = {
+                'Speed': lambda _: self.property_average('speed'),
+                'Awareness': lambda _: self.property_average('awareness'),
+                'Size': lambda _: self.property_average('size')
+            }
+        )
+        self.data_collectors = [self.dc_num_organisms, self.dc_properties]
+        self.update_data_collectors()
+
     def remove_agent(self, agent: Agent):
         self.grid.remove_agent(agent)
         self.schedule.remove(agent)
@@ -230,6 +239,18 @@ class NSModel(Model):
             food = Food(self)
             self.schedule.add(food)
             self.grid.place_agent(food, cells[i])
+
+    def property_average(self, prop_name: str):
+        acc, count = 0, 0
+        for agent in self.schedule.agents:
+            if isinstance(agent, Organism):
+                acc += getattr(agent, prop_name)
+                count += 1
+        return acc / count
+
+    def update_data_collectors(self):
+        for dc in self.data_collectors:
+            dc.collect(self)
 
     def new_generation(self):
         for agent in self.schedule.agents:
@@ -254,7 +275,7 @@ class NSModel(Model):
         self.place_food()
         self.generation += 1
 
-        self.data_collector.collect(self)
+        self.update_data_collectors()
 
     def step(self):
         self.schedule.step()

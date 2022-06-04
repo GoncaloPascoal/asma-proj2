@@ -1,6 +1,7 @@
 
 import numpy as np
 from matplotlib.colors import to_hex
+from typing import Dict, Any
 
 from mesa import Agent, Model
 from mesa.visualization.modules import CanvasGrid
@@ -55,49 +56,67 @@ def agent_portrayal(agent: Agent):
 
     return portrayal
 
-grid = CanvasGrid(agent_portrayal, 10, 10, 500, 500)
+def create_server(model_args: Dict[str, Any]) -> ModularServer:
+    grid = CanvasGrid(agent_portrayal, model_args['width'], model_args['height'], 500, 500)
 
-# Charts
-num_organisms = GenerationChartModule(
-    [{'Label': 'Organisms', 'Color': '#0000FF'}],
-    data_collector_name='dc_num_organisms'
-)
+    # Charts
+    num_organisms = GenerationChartModule(
+        [{'Label': 'Organisms', 'Color': '#0000FF'}],
+        data_collector_name='dc_num_organisms'
+    )
 
-properties = GenerationChartModule(
-    [
-        {'Label': 'Speed', 'Color': '#00AADD'},
-        {'Label': 'Awareness', 'Color': '#DDAA00'},
-        {'Label': 'Size', 'Color': '#AA00DD'},
-    ],
-    data_collector_name='dc_properties'
-)
-trail_percentage = GenerationChartModule(
-    [{'Label': 'Trail Percentage', 'Color': '#DD3300'}],
-    data_collector_name='dc_num_organisms'
-)
+    properties = GenerationChartModule(
+        [
+            {'Label': 'Speed', 'Color': '#00AADD'},
+            {'Label': 'Awareness', 'Color': '#DDAA00'},
+            {'Label': 'Size', 'Color': '#AA00DD'},
+        ],
+        data_collector_name='dc_properties'
+    )
+    trail_percentage = GenerationChartModule(
+        [{'Label': 'Trail Percentage', 'Color': '#DD3300'}],
+        data_collector_name='dc_num_organisms'
+    )
 
-hist_speed = HistogramModule(
-    bins=list(range(Organism.MIN_SPEED, Organism.MAX_SPEED + 1)),
-    attribute='speed',
-    color='#00AADD'
-)
-hist_awareness = HistogramModule(
-    bins=list(range(Organism.MIN_AWARENESS, Organism.MAX_AWARENESS + 1)),
-    attribute='awareness',
-    color='#DDAA00'
-)
-hist_size = HistogramModule(
-    bins=list(np.arange(Organism.MIN_SIZE, Organism.MAX_SIZE + 0.125, 0.125)),
-    attribute='size',
-    color='#AA00DD'
-)
+    hist_speed = HistogramModule(
+        bins=list(range(Organism.MIN_SPEED, Organism.MAX_SPEED + 1)),
+        attribute='speed',
+        color='#00AADD'
+    )
+    hist_awareness = HistogramModule(
+        bins=list(range(Organism.MIN_AWARENESS, Organism.MAX_AWARENESS + 1)),
+        attribute='awareness',
+        color='#DDAA00'
+    )
+    hist_size = HistogramModule(
+        bins=list(np.arange(Organism.MIN_SIZE, Organism.MAX_SIZE + 0.125, 0.125)),
+        attribute='size',
+        color='#AA00DD'
+    )
 
-server = ModularServer(
-    NSModel,
-    [
-        generation, grid, num_organisms, properties, trail_percentage,
-        hist_speed, hist_awareness, hist_size
-    ],
-    'Natural Selection Model',
-    {'num_organisms': 10, 'width': 10, 'height': 10}
-)
+    elements = [generation, grid, num_organisms]
+    if not (model_args['disable_speed'] and model_args['disable_awareness'] and
+        model_args['disable_size']):
+        elements.append(properties)
+
+    if not model_args['disable_trail']:
+        elements.append(trail_percentage)    
+
+    if not model_args['disable_speed']:
+        elements.append(hist_speed)
+
+    if not model_args['disable_awareness']:
+        elements.append(hist_awareness)
+
+    if not model_args['disable_size']:
+        elements.append(hist_size)
+
+    return ModularServer(
+        NSModel,
+        [
+            generation, grid, num_organisms, properties, trail_percentage,
+            hist_speed, hist_awareness, hist_size
+        ],
+        'Natural Selection Model',
+        model_args
+    )

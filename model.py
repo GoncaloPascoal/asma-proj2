@@ -210,7 +210,9 @@ class NSModel(Model):
 
     def __init__(self, num_organisms: int = 10, width: int = 10, height: int = 10,
             food_per_generation: int = 20, speed_mutation_rate: float = 0.1,
-            awareness_mutation_rate: float = 0.05, size_mutation_rate: float = 0.05) -> None:
+            awareness_mutation_rate: float = 0.05, size_mutation_rate: float = 0.05,
+            disable_speed: bool = False, disable_awareness: bool = False,
+            disable_size: bool = False, disable_trail: bool = False) -> None:
         super().__init__()
 
         self.num_organisms = num_organisms

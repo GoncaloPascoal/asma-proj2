@@ -1,14 +1,14 @@
 
 const HistogramModule = function(bins, canvasWidth, canvasHeight, label) {
-    let canvasTag = '<canvas width="' + canvasWidth + '" height="' +
+    const canvasTag = '<canvas width="' + canvasWidth + '" height="' +
         canvasHeight + '" style="border:1px dotted"></canvas>';
 
-    let canvas = $(canvasTag)[0];
+    const canvas = $(canvasTag)[0];
     $('#elements').append(canvas);
 
-    let context = canvas.getContext('2d');
+    const context = canvas.getContext('2d');
 
-    let datasets = [{
+    const datasets = [{
         label: label,
         fillColor: 'rgba(151,187,205,0.5)',
         strokeColor: 'rgba(151,187,205,0.8)',
@@ -20,12 +20,12 @@ const HistogramModule = function(bins, canvasWidth, canvasHeight, label) {
     for (let _ in bins)
         datasets[0].data.push(0);
     
-    let data = {
+    const data = {
         labels: bins,
         datasets: datasets
     };
 
-    let options = {
+    const options = {
         scaleBeginsAtZero: true
     };
 

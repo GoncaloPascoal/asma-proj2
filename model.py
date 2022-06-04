@@ -51,7 +51,7 @@ class Organism(Agent):
     MAX_TRAIL_LENGTH: int = 5
 
     def __init__(self, model: Model, speed: int = 3, awareness: int = 1,
-            size: float = 1.0, trail: bool = True):
+            size: float = 1.0, trail: bool = False):
         super().__init__(model.next_id(), model)
 
         # Genes

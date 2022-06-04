@@ -2,7 +2,7 @@
 from math import sqrt
 from typing import Tuple
 
-from mesa import Agent, Model
+from mesa import Agent, DataCollector, Model
 from mesa.space import MultiGrid
 from mesa.time import RandomActivation
 
@@ -25,11 +25,14 @@ class Organism(Agent):
 
     MIN_SPEED: int = 1
     MAX_SPEED: int = 5
+    
     MIN_AWARENESS: int = 0
     MAX_AWARENESS: int = 5
+    
     MIN_SIZE: float = 0.5
     MAX_SIZE: float = 2.0
     MAX_SIZE_MUTATION = 0.2
+    SIZE_TO_EAT: float = 0.125
 
     def __init__(self, model: Model, speed: int = 3, awareness: int = 1,
             size: float = 1.0, trail: bool = False):
@@ -89,7 +92,7 @@ class Organism(Agent):
 
     @staticmethod
     def can_eat(organism1, organism2) -> bool:
-        return organism1.size / organism2.size > 1.15
+        return organism1.size / organism2.size > (1 + Organism.SIZE_TO_EAT)
 
     def eat(self, amount: float):
         needed_for_survival = 1.0 - self.prob_survival
@@ -112,6 +115,7 @@ class Organism(Agent):
         if self.prob_replication < 1.0:
             self.eat(1.0)
             self.model.agents_to_remove.add(organism)
+            self.model.num_organisms -= 1
 
     def step(self):
         if self in self.model.agents_to_remove:
@@ -166,11 +170,12 @@ class Organism(Agent):
 class NSModel(Model):
     STEPS_PER_GENERATION = 120
 
-    def __init__(self, num_agents: int = 10, width: int = 10, height: int = 10,
+    def __init__(self, num_organisms: int = 10, width: int = 10, height: int = 10,
             food_per_generation: int = 20, speed_mutation_rate: float = 0.1,
             awareness_mutation_rate: float = 0.05, size_mutation_rate: float = 0.05) -> None:
         super().__init__()
 
+        self.num_organisms = num_organisms
         self.grid = MultiGrid(width, height, torus=False)
         self.food_per_generation = food_per_generation
 
@@ -196,12 +201,31 @@ class NSModel(Model):
         self.step_count = 0
 
         # Create agents
-        for _ in range(num_agents):
+        for _ in range(num_organisms):
             agent = Organism(self)
             self.schedule.add(agent)
 
         self.place_agents(init=True)
         self.place_food()
+
+        # Initialize data collectors
+        self.dc_num_organisms = DataCollector(
+            model_reporters={'Organisms': 'num_organisms'}
+        )
+        self.dc_properties = DataCollector(
+            model_reporters={
+                'Speed': lambda _: self.property_average('speed'),
+                'Awareness': lambda _: self.property_average('awareness'),
+                'Size': lambda _: self.property_average('size')
+            }
+        )
+        self.dc_trail_percentage = DataCollector(
+            model_reporters={'Trail Percentage': self.trail_percentage}
+        )
+        # TODO: average age chart
+
+        self.data_collectors = [self.dc_num_organisms, self.dc_properties, self.dc_trail_percentage]
+        self.update_data_collectors()
 
     def remove_agent(self, agent: Agent):
         self.grid.remove_agent(agent)
@@ -223,6 +247,26 @@ class NSModel(Model):
             self.schedule.add(food)
             self.grid.place_agent(food, cells[i])
 
+    def property_average(self, prop_name: str) -> float:
+        acc, count = 0, 0
+        for agent in self.schedule.agents:
+            if isinstance(agent, Organism):
+                acc += getattr(agent, prop_name)
+                count += 1
+        return acc / count
+
+    def trail_percentage(self) -> float:
+        acc, count = 0, 0
+        for agent in self.schedule.agents:
+            if isinstance(agent, Organism):
+                acc += int(agent.trail)
+                count += 1
+        return 100 * acc / count
+
+    def update_data_collectors(self):
+        for dc in self.data_collectors:
+            dc.collect(self)
+
     def new_generation(self):
         for agent in self.schedule.agents:
             if isinstance(agent, Food):
@@ -233,16 +277,20 @@ class NSModel(Model):
 
                 if not survives:
                     self.remove_agent(agent)
+                    self.num_organisms -= 1
                 elif replicates:
                     replica = agent.replicate()
                     self.schedule.add(replica)
                     self.grid.place_agent(replica, (0, 0))
+                    self.num_organisms += 1
 
                 agent.reset()
 
         self.place_agents()
         self.place_food()
         self.generation += 1
+
+        self.update_data_collectors()
 
     def step(self):
         self.schedule.step()

@@ -60,10 +60,14 @@ properties = GenerationChartModule(
     ],
     data_collector_name='dc_properties'
 )
+trail_percentage = GenerationChartModule(
+    [{'Label': 'Trail Percentage', 'Color': '#DD3300'}],
+    data_collector_name='dc_num_organisms'
+)
 
 server = ModularServer(
     NSModel,
-    [generation, grid, num_organisms, properties],
+    [generation, grid, num_organisms, properties, trail_percentage],
     'Natural Selection Model',
     {'num_organisms': 10, 'width': 10, 'height': 10}
 )

@@ -1,6 +1,5 @@
 
 from math import sqrt
-from statistics import mode
 from typing import Tuple
 
 from mesa import Agent, DataCollector, Model
@@ -211,13 +210,18 @@ class NSModel(Model):
             model_reporters={'Organisms': 'num_organisms'}
         )
         self.dc_properties = DataCollector(
-            model_reporters = {
+            model_reporters={
                 'Speed': lambda _: self.property_average('speed'),
                 'Awareness': lambda _: self.property_average('awareness'),
                 'Size': lambda _: self.property_average('size')
             }
         )
-        self.data_collectors = [self.dc_num_organisms, self.dc_properties]
+        self.dc_trail_percentage = DataCollector(
+            model_reporters={'Trail Percentage': self.trail_percentage}
+        )
+        # TODO: average age chart
+
+        self.data_collectors = [self.dc_num_organisms, self.dc_properties, self.dc_trail_percentage]
         self.update_data_collectors()
 
     def remove_agent(self, agent: Agent):
@@ -240,13 +244,21 @@ class NSModel(Model):
             self.schedule.add(food)
             self.grid.place_agent(food, cells[i])
 
-    def property_average(self, prop_name: str):
+    def property_average(self, prop_name: str) -> float:
         acc, count = 0, 0
         for agent in self.schedule.agents:
             if isinstance(agent, Organism):
                 acc += getattr(agent, prop_name)
                 count += 1
         return acc / count
+
+    def trail_percentage(self) -> float:
+        acc, count = 0, 0
+        for agent in self.schedule.agents:
+            if isinstance(agent, Organism):
+                acc += int(agent.trail)
+                count += 1
+        return 100 * acc / count
 
     def update_data_collectors(self):
         for dc in self.data_collectors:

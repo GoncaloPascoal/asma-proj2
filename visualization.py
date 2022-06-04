@@ -39,13 +39,13 @@ class GenerationChartModule(VisualizationElement):
     def __init__(
         self,
         series,
-        canvas_height: int = 200,
         canvas_width: int = 500,
+        canvas_height: int = 200,
         data_collector_name: str = 'datacollector',
     ):
         self.series = series
-        self.canvas_height = canvas_height
         self.canvas_width = canvas_width
+        self.canvas_height = canvas_height
         self.data_collector_name = data_collector_name
         self.generation = None
 

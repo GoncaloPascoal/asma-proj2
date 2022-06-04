@@ -15,6 +15,20 @@ def distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
 def clamp(val, lower, upper):
     return max(lower, min(val, upper))
 
+class PheromoneTrail(Agent):
+    MAX_STRENGTH = 15
+
+    def __init__(self, model: Model, creator: int, came_from: Tuple[int, int]) -> None:
+        super().__init__(model.next_id(), model)
+        self.creator = creator
+        self.came_from = came_from
+        self.strength = PheromoneTrail.MAX_STRENGTH
+
+    def step(self):
+        self.strength -= 1
+        if self.strength == 0:
+            self.model.agents_to_remove.add(self)
+
 class Food(Agent):
     def __init__(self, model: Model, amount: float = 1.0):
         super().__init__(model.next_id(), model)
@@ -25,14 +39,16 @@ class Organism(Agent):
 
     MIN_SPEED: int = 1
     MAX_SPEED: int = 5
-    
+
     MIN_AWARENESS: int = 0
     MAX_AWARENESS: int = 5
-    
+
     MIN_SIZE: float = 0.5
     MAX_SIZE: float = 2.0
     MAX_SIZE_MUTATION = 0.2
     SIZE_TO_EAT: float = 0.125
+
+    MAX_TRAIL_LENGTH: int = 5
 
     def __init__(self, model: Model, speed: int = 3, awareness: int = 1,
             size: float = 1.0, trail: bool = False):
@@ -44,6 +60,9 @@ class Organism(Agent):
         self.size = size
         self.trail = trail
 
+        self.food_positions = set()
+        self.trail_length = 0
+
         self.reset_move_ticks()
         self.reset()
 
@@ -51,12 +70,13 @@ class Organism(Agent):
         self.move_ticks = 1 + Organism.MAX_SPEED - self.speed
 
     def reset(self):
+        self.food_positions.clear()
         self.energy = Organism.MAX_ENERGY
         self.prob_survival = 0.0
         self.prob_replication = 0.0
 
     def move(self):
-        closest_threat, closest_food = None, None
+        closest_threat, closest_food, strongest_trail = None, None, None
         next_pos = None
 
         adjacent = self.model.grid.get_neighborhood(self.pos, moore=True)
@@ -71,6 +91,12 @@ class Organism(Agent):
                 if not closest_food or squared_distance(self.pos, closest_food.pos) < squared_distance(self.pos, agent.pos):
                     closest_food = agent
 
+        if self.trail:
+            for agent in self.model.grid.iter_cell_list_contents([self.pos]):
+                if isinstance(agent, PheromoneTrail) and agent.creator != self.unique_id:
+                    if not strongest_trail or agent.strength > strongest_trail.strength:
+                        strongest_trail = agent
+
         if closest_threat:
             for pos in adjacent:
                 if not next_pos or squared_distance(pos, closest_threat.pos) > squared_distance(next_pos, closest_threat.pos):
@@ -79,13 +105,22 @@ class Organism(Agent):
             for pos in adjacent:
                 if not next_pos or squared_distance(pos, closest_food.pos) < squared_distance(next_pos, closest_food.pos):
                     next_pos = pos
+        elif strongest_trail:
+            next_pos = strongest_trail.came_from
         else:
             next_pos = self.random.choice(adjacent)
 
         required_energy = self.move_energy(distance(self.pos, next_pos))
         if self.energy >= required_energy:
             self.energy -= required_energy
+
+            came_from = self.pos
             self.model.grid.move_agent(self, next_pos)
+            if self.trail_length > 0:
+                trail = PheromoneTrail(self.model, self.unique_id, came_from)
+                self.model.schedule.add(trail)
+                self.model.grid.place_agent(trail, self.pos)
+                self.trail_length -= 1
 
     def move_energy(self, distance_moved: float) -> float:
         return pow(self.size, 3) * pow(self.speed, 2) * distance_moved + self.awareness
@@ -128,11 +163,14 @@ class Organism(Agent):
                 if other in self.model.agents_to_remove:
                     continue
 
-                if isinstance(other, Food):
+                if isinstance(other, Food) and other.pos not in self.food_positions:
                     # Organism is in cell with food
                     amount = other.amount
                     if self.trail:
                         amount = min(0.5, other.amount)
+                        if other.amount > 0.5:
+                            self.food_positions.add(other.pos)
+                            self.trail_length = Organism.MAX_TRAIL_LENGTH
                     self.eat_food(other, amount)
                 elif isinstance(other, Organism):
                     # Organism is in cell with another agent

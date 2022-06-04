@@ -7,7 +7,7 @@ from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 
 from visualization import GenerationChartModule, HistogramModule
-from model import Food, Organism, NSModel
+from model import Food, Organism, NSModel, PheromoneTrail
 
 def generation(model: Model) -> str:
     return f'Generation: {model.generation}'
@@ -43,6 +43,15 @@ def agent_portrayal(agent: Agent):
 
         for attr in ['speed', 'awareness', 'size', 'energy', 'prob_survival', 'prob_replication']:
             portrayal[attr] = agent.__dict__.get(attr)
+    elif isinstance(agent, PheromoneTrail):
+        portrayal['Shape'] = 'arrowHead'
+        portrayal['Color'] = to_hex(
+            [0.95, 0.5, 0.95, 0.1 + 0.5 * agent.strength / PheromoneTrail.MAX_STRENGTH],
+            keep_alpha=True
+        )
+        portrayal['scale'] = 0.3
+        portrayal['heading_x'] = agent.came_from[0] - agent.pos[0]
+        portrayal['heading_y'] = agent.came_from[1] - agent.pos[1]
 
     return portrayal
 

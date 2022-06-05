@@ -37,7 +37,7 @@ def main():
     parser.add_argument('-iz', '--initial-size', metavar='S', type=float, default=1.0,
         help='size of initial population')
     parser.add_argument('-it', '--initial-trail', metavar='T', type=float, default=0.5,
-        help='percentage of initial population with trail gene')
+        help='ratio of initial population with trail gene')
 
     args = vars(parser.parse_args())
 

@@ -126,7 +126,7 @@ class Organism(Agent):
                 self.trail_length -= 1
 
     def move_energy(self, distance_moved: float) -> float:
-        return 0.3 * pow(self.size, 3) * pow(self.speed, 2) * distance_moved + 0.4 * self.awareness
+        return 0.35 * pow(self.size, 3) * pow(self.speed, 2) * distance_moved + 0.4 * self.awareness
 
     @staticmethod
     def can_eat(organism1, organism2) -> bool:

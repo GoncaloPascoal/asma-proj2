@@ -11,7 +11,8 @@ Second project of the **Agents and Multi-Agent Systems** curricular unit.
 
 ### Installing our Mesa Fork
 
-Our fork lets users increase simulation speed past the default maximum set by Mesa.
+Our fork lets users increase simulation speed past the default maximum set by Mesa
+and includes some additional visualization options.
 
 ```
 pip install git+https://github.com/VenomPaco/mesa@increase-fps#egg=mesa

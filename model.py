@@ -148,7 +148,8 @@ class Organism(Agent):
                 self.model.agents_to_remove.add(food)
 
     def eat_organism(self, organism: Agent):
-        if self.prob_replication < 1.0:
+        # Organisms with the trail gene won't eat each other
+        if self.prob_replication < 1.0 and not (self.trail and organism.trail):
             self.eat(1.0)
             self.model.agents_to_remove.add(organism)
             self.model.num_organisms -= 1

@@ -283,12 +283,16 @@ class NSModel(Model):
         self.schedule.remove(agent)
 
     def place_agents(self, init=False):
-        for agent in self.schedule.agents:
-            pos = self.random.sample(self.border_cells, 1)[0]
+        if len(self.border_cells) >= len(self.schedule.agents):
+            positions = self.random.sample(self.border_cells, len(self.schedule.agents))
+        else:
+            positions = self.random.choices(list(self.border_cells), k=len(self.schedule.agents))
+
+        for i, agent in enumerate(self.schedule.agents):
             if init:
-                self.grid.place_agent(agent, pos)
+                self.grid.place_agent(agent, positions[i])
             else:
-                self.grid.move_agent(agent, pos)
+                self.grid.move_agent(agent, positions[i])
 
     def place_food(self):
         cells = self.random.sample(self.center_cells, self.food_per_generation)

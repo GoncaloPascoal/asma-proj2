@@ -46,7 +46,7 @@ class Organism(Agent):
 
     MIN_SIZE: float = 0.5
     MAX_SIZE: float = 2.0
-    MAX_SIZE_MUTATION = 0.25
+    MAX_SIZE_MUTATION = 0.15
     SIZE_TO_EAT: float = 0.20
 
     MAX_TRAIL_LENGTH: int = 5

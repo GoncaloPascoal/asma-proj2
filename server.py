@@ -48,11 +48,15 @@ def agent_portrayal(agent: Agent):
 
         speed_rate = (agent.speed - Organism.MIN_SPEED) / (Organism.MAX_SPEED - Organism.MIN_SPEED)
 
+        r = 0.45 if agent.prob_survival < 1 else 0.1
+        g = 0.45 if agent.prob_survival == 1 and agent.prob_replication < 1 else 0.1
+        b = 0.45 if agent.prob_replication == 1 else 0.1
+
         portrayal['Shape'] = 'rect'
         portrayal['Color'] = to_hex([
-            0.1 + 0.1 * speed_rate,
-            0.2 + 0.1 * speed_rate,
-            0.4 + 0.5 * speed_rate
+            r + r * speed_rate,
+            g + g * speed_rate,
+            b + b * speed_rate
         ])
         portrayal['w'] = w
         portrayal['h'] = h
@@ -125,7 +129,7 @@ def create_server(model_args: Dict[str, Any]) -> ModularServer:
         elements.append(properties)
 
     if model_args['initial_trail'] != 0.0:
-        elements.append(trail_percentage)    
+        elements.append(trail_percentage)
 
     if model_args['speed_mutation_rate'] != 0.0:
         elements.append(hist_speed)

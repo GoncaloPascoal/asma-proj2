@@ -320,9 +320,7 @@ class NSModel(Model):
 
     def new_generation(self):
         for agent in self.schedule.agents:
-            if isinstance(agent, Food):
-                self.remove_agent(agent)
-            elif isinstance(agent, Organism):
+            if isinstance(agent, Organism):
                 survives = self.random.random() <= agent.prob_survival
                 replicates = self.random.random() <= agent.prob_replication
 
@@ -338,6 +336,8 @@ class NSModel(Model):
                         self.num_organisms += 1
 
                 agent.reset()
+            else:
+                self.remove_agent(agent)
 
         self.place_agents()
         self.place_food()

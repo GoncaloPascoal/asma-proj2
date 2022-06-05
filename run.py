@@ -1,5 +1,7 @@
 
 from argparse import ArgumentParser, HelpFormatter
+
+from model import Organism
 from server import create_server
 
 def main():
@@ -10,6 +12,8 @@ def main():
 
     parser.add_argument('-s', '--seed', metavar='S', default=None,
         help='seed for the random number generator')
+    parser.add_argument('-e', '--energy', metavar='E', type=float, default=150.0,
+        help='starting (maximum) energy of organisms')
     parser.add_argument('--width', metavar='W', type=int, default=20,
         help='width of the grid world')
     parser.add_argument('--height', metavar='H', type=int, default=20,
@@ -36,6 +40,10 @@ def main():
         help='percentage of initial population with trail gene')
 
     args = vars(parser.parse_args())
+
+    Organism.MAX_ENERGY = args['energy']
+    del args['energy']
+
     server = create_server(args)
     server.launch()
 

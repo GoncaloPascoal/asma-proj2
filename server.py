@@ -1,7 +1,7 @@
 
 import numpy as np
 from matplotlib.colors import to_hex
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 
 from mesa import Agent, Model
 from mesa.visualization.modules import CanvasGrid
@@ -12,6 +12,23 @@ from model import Food, Organism, NSModel, PheromoneTrail
 
 def generation(model: Model) -> str:
     return f'Generation: {model.generation}'
+
+def offset_to_coordinate(offset: Tuple[int, int]) -> str:
+    coord = ''
+
+    # North / South
+    if offset[1] > 0:
+        coord += 'n'
+    elif offset[1] < 0:
+        coord += 's'
+
+    # East / West
+    if offset[0] > 0:
+        coord += 'e'
+    elif offset[0] < 0:
+        coord += 'w'
+
+    return coord
 
 def agent_portrayal(agent: Agent):
     portrayal = {
@@ -42,22 +59,17 @@ def agent_portrayal(agent: Agent):
         portrayal['xAlign'] = 0.9 - w / 2
         portrayal['yAlign'] = 0.9 - h / 2
 
-        for attr in ['speed', 'awareness', 'size', 'energy', 'prob_survival', 'prob_replication']:
+        for attr in ['speed', 'awareness', 'size', 'energy', 'trail', 'prob_survival', 'prob_replication']:
             portrayal[attr] = agent.__dict__.get(attr)
     elif isinstance(agent, PheromoneTrail):
-        portrayal['Shape'] = 'arrowHead'
-        portrayal['Color'] = to_hex(
-            [0.95, 0.5, 0.95, 0.1 + 0.5 * agent.strength / PheromoneTrail.MAX_STRENGTH],
-            keep_alpha=True
-        )
-        portrayal['scale'] = 0.3
-        portrayal['heading_x'] = agent.came_from[0] - agent.pos[0]
-        portrayal['heading_y'] = agent.came_from[1] - agent.pos[1]
+        offset = (agent.came_from[0] - agent.pos[0], agent.came_from[1] - agent.pos[1])
+        portrayal['Shape'] = f'images/arrow_{offset_to_coordinate(offset)}.png'
+        portrayal['scale'] = 0.2 + 0.4 * agent.strength / PheromoneTrail.MAX_STRENGTH
 
     return portrayal
 
 def create_server(model_args: Dict[str, Any]) -> ModularServer:
-    grid = CanvasGrid(agent_portrayal, model_args['width'], model_args['height'], 500, 500)
+    grid = CanvasGrid(agent_portrayal, model_args['width'], model_args['height'], 750, 750)
 
     # Charts
     num_organisms = GenerationChartModule(
@@ -75,7 +87,7 @@ def create_server(model_args: Dict[str, Any]) -> ModularServer:
     )
     trail_percentage = GenerationChartModule(
         [{'Label': 'Trail Percentage', 'Color': '#DD3300'}],
-        data_collector_name='dc_num_organisms'
+        data_collector_name='dc_trail_percentage'
     )
 
     hist_speed = HistogramModule(
@@ -99,7 +111,7 @@ def create_server(model_args: Dict[str, Any]) -> ModularServer:
         model_args['disable_size']):
         elements.append(properties)
 
-    if not model_args['disable_trail']:
+    if model_args['initial_trail'] != 0.0:
         elements.append(trail_percentage)    
 
     if not model_args['disable_speed']:

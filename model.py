@@ -16,13 +16,14 @@ def clamp(val, lower, upper):
     return max(lower, min(val, upper))
 
 class PheromoneTrail(Agent):
-    MAX_STRENGTH = 15
+    MAX_STRENGTH = 10
 
-    def __init__(self, model: Model, creator: int, came_from: Tuple[int, int]) -> None:
+    def __init__(self, model: Model, creator: int, came_from: Tuple[int, int],
+            strength_reduction: int = 0) -> None:
         super().__init__(model.next_id(), model)
         self.creator = creator
         self.came_from = came_from
-        self.strength = PheromoneTrail.MAX_STRENGTH
+        self.strength = PheromoneTrail.MAX_STRENGTH - strength_reduction
 
     def step(self):
         self.strength -= 1
@@ -45,8 +46,8 @@ class Organism(Agent):
 
     MIN_SIZE: float = 0.5
     MAX_SIZE: float = 2.0
-    MAX_SIZE_MUTATION = 0.15
-    SIZE_TO_EAT: float = 0.125
+    MAX_SIZE_MUTATION = 0.25
+    SIZE_TO_EAT: float = 0.20
 
     MAX_TRAIL_LENGTH: int = 5
 
@@ -94,7 +95,7 @@ class Organism(Agent):
         if self.trail:
             for agent in self.model.grid.iter_cell_list_contents([self.pos]):
                 if isinstance(agent, PheromoneTrail) and agent.creator != self.unique_id:
-                    if not strongest_trail or agent.strength > strongest_trail.strength:
+                    if (not strongest_trail or agent.strength > strongest_trail.strength) and agent.came_from != self.pos:
                         strongest_trail = agent
 
         if closest_threat:
@@ -105,7 +106,7 @@ class Organism(Agent):
             for pos in adjacent:
                 if not next_pos or squared_distance(pos, closest_food.pos) < squared_distance(next_pos, closest_food.pos):
                     next_pos = pos
-        elif strongest_trail:
+        elif strongest_trail and self.random.random() <= strongest_trail.strength / PheromoneTrail.MAX_STRENGTH:
             next_pos = strongest_trail.came_from
         else:
             next_pos = self.random.choice(adjacent)
@@ -117,13 +118,13 @@ class Organism(Agent):
             came_from = self.pos
             self.model.grid.move_agent(self, next_pos)
             if self.trail_length > 0:
-                trail = PheromoneTrail(self.model, self.unique_id, came_from)
+                trail = PheromoneTrail(self.model, self.unique_id, came_from, Organism.MAX_TRAIL_LENGTH - self.trail_length)
                 self.model.schedule.add(trail)
                 self.model.grid.place_agent(trail, self.pos)
                 self.trail_length -= 1
 
     def move_energy(self, distance_moved: float) -> float:
-        return 0.5 * pow(self.size, 3) * pow(self.speed, 2) * distance_moved + self.awareness
+        return 0.3 * pow(self.size, 3) * pow(self.speed, 2) * distance_moved + 0.4 * self.awareness
 
     @staticmethod
     def can_eat(organism1, organism2) -> bool:
@@ -198,7 +199,7 @@ class Organism(Agent):
             awareness = clamp(awareness, Organism.MIN_AWARENESS, Organism.MAX_AWARENESS)
 
         # Size mutation
-        if self.model.random.random() <= self.model.speed_mutation_rate:
+        if self.model.random.random() <= self.model.size_mutation_rate:
             # Within [-MAX_SIZE_MUTATION, MAX_SIZE_MUTATION]
             size += 2 * Organism.MAX_SIZE_MUTATION * self.model.random.random() - Organism.MAX_SIZE_MUTATION
             size = clamp(size, Organism.MIN_SIZE, Organism.MAX_SIZE)
@@ -208,20 +209,25 @@ class Organism(Agent):
 class NSModel(Model):
     STEPS_PER_GENERATION = 120
 
-    def __init__(self, num_organisms: int = 10, width: int = 10, height: int = 10,
-            food_per_generation: int = 20, speed_mutation_rate: float = 0.1,
-            awareness_mutation_rate: float = 0.05, size_mutation_rate: float = 0.05,
+    def __init__(
+            self,
+            num_organisms: int = 25, width: int = 20, height: int = 20,
+            food_per_generation: int = 60, speed_mutation_rate: float = 0.08,
+            awareness_mutation_rate: float = 0.08, size_mutation_rate: float = 0.08,
             disable_speed: bool = False, disable_awareness: bool = False,
-            disable_size: bool = False, disable_trail: bool = False) -> None:
+            disable_size: bool = False, initial_speed: int = 3,
+            initial_awareness: int = 2, initial_size: float = 1.0,
+            initial_trail: float = 0.5
+        ) -> None:
         super().__init__()
 
         self.num_organisms = num_organisms
         self.grid = MultiGrid(width, height, torus=False)
         self.food_per_generation = food_per_generation
 
-        self.speed_mutation_rate = 0 if disable_speed else speed_mutation_rate
-        self.awareness_mutation_rate = 0 if disable_awareness else awareness_mutation_rate
-        self.size_mutation_rate = 0 if disable_size else size_mutation_rate
+        self.speed_mutation_rate = -1 if disable_speed else speed_mutation_rate
+        self.awareness_mutation_rate = -1 if disable_awareness else awareness_mutation_rate
+        self.size_mutation_rate = -1 if disable_size else size_mutation_rate
 
         self.schedule = RandomActivation(self)
         self.agents_to_remove = set()
@@ -242,8 +248,8 @@ class NSModel(Model):
 
         # Create agents
         for i in range(num_organisms):
-            trail = not disable_trail and i < num_organisms / 2
-            agent = Organism(self, trail=trail)
+            trail = i < num_organisms * initial_trail
+            agent = Organism(self, initial_speed, initial_awareness, initial_size, trail)
             self.schedule.add(agent)
 
         self.place_agents(init=True)
@@ -294,7 +300,7 @@ class NSModel(Model):
             if isinstance(agent, Organism):
                 acc += getattr(agent, prop_name)
                 count += 1
-        return acc / count
+        return acc / count if count != 0 else 0.0
 
     def trail_percentage(self) -> float:
         acc, count = 0, 0
@@ -302,7 +308,7 @@ class NSModel(Model):
             if isinstance(agent, Organism):
                 acc += int(agent.trail)
                 count += 1
-        return 100 * acc / count
+        return 100 * acc / count if count != 0 else 0.0
 
     def update_data_collectors(self):
         for dc in self.data_collectors:

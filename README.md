@@ -1,5 +1,5 @@
-# Natural Selection Simulation
-*Analysis of the Characteristics of an Evolving Population, following a Natural Selection approach*
+# Evolution through Natural Selection
+*Simulating and Analyzing the Evolution of a Population Using Genetic Concepts*
 
 Second project of the **Agents and Multi-Agent Systems** curricular unit.
 
@@ -13,10 +13,22 @@ Second project of the **Agents and Multi-Agent Systems** curricular unit.
 
 Our fork lets users increase simulation speed past the default maximum set by Mesa.
 
-`pip install git+https://github.com/VenomPaco/mesa@increase-fps#egg=mesa`
+```
+pip install git+https://github.com/VenomPaco/mesa@increase-fps#egg=mesa
+```
 
 ### Running the Simulation
 
 To run the simulation, execute the command:
 
-`mesa runserver`
+```
+python3 run.py (Linux)
+python run.py (Windows)
+```
+
+To see the available command-line arguments, use:
+
+```
+python3 run.py --help (Linux)
+python run.py --help (Windows)
+```

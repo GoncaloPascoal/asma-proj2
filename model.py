@@ -212,7 +212,7 @@ class NSModel(Model):
 
     def __init__(
             self,
-            num_organisms: int = 25, width: int = 20, height: int = 20,
+            seed = None, num_organisms: int = 25, width: int = 20, height: int = 20,
             food_per_generation: int = 60, speed_mutation_rate: float = 0.08,
             awareness_mutation_rate: float = 0.08, size_mutation_rate: float = 0.08,
             disable_speed: bool = False, disable_awareness: bool = False,

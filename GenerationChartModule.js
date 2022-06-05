@@ -61,12 +61,14 @@ const GenerationChartModule = function(series, canvas_width, canvas_height) {
                 ticks: {
                     maxTicksLimit: 11,
                 },
+                min: 0,
             },
             y: {
                 display: true,
                 title: {
                     display: true,
                 },
+                min: 0,
             },
         },
     };

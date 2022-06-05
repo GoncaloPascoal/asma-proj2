@@ -64,6 +64,8 @@ class Organism(Agent):
         self.food_positions = set()
         self.trail_length = 0
 
+        self.age = 0
+
         self.reset_move_ticks()
         self.reset()
 
@@ -215,10 +217,8 @@ class NSModel(Model):
             seed = None, num_organisms: int = 25, width: int = 20, height: int = 20,
             food_per_generation: int = 60, speed_mutation_rate: float = 0.08,
             awareness_mutation_rate: float = 0.08, size_mutation_rate: float = 0.08,
-            disable_speed: bool = False, disable_awareness: bool = False,
-            disable_size: bool = False, initial_speed: int = 3,
-            initial_awareness: int = 2, initial_size: float = 1.0,
-            initial_trail: float = 0.5
+            initial_speed: int = 3, initial_awareness: int = 2,
+            initial_size: float = 1.0, initial_trail: float = 0.5
         ) -> None:
         super().__init__()
 
@@ -226,9 +226,9 @@ class NSModel(Model):
         self.grid = MultiGrid(width, height, torus=False)
         self.food_per_generation = food_per_generation
 
-        self.speed_mutation_rate = -1 if disable_speed else speed_mutation_rate
-        self.awareness_mutation_rate = -1 if disable_awareness else awareness_mutation_rate
-        self.size_mutation_rate = -1 if disable_size else size_mutation_rate
+        self.speed_mutation_rate = speed_mutation_rate
+        self.awareness_mutation_rate = awareness_mutation_rate
+        self.size_mutation_rate = size_mutation_rate
 
         self.schedule = RandomActivation(self)
         self.agents_to_remove = set()
@@ -270,9 +270,12 @@ class NSModel(Model):
         self.dc_trail_percentage = DataCollector(
             model_reporters={'Trail Percentage': self.trail_percentage}
         )
-        # TODO: average age chart
+        self.dc_age = DataCollector(
+            model_reporters={'Age': lambda _: self.property_average('age')}
+        )
 
-        self.data_collectors = [self.dc_num_organisms, self.dc_properties, self.dc_trail_percentage]
+        self.data_collectors = [self.dc_num_organisms, self.dc_properties,
+            self.dc_trail_percentage, self.dc_age]
         self.update_data_collectors()
 
     def remove_agent(self, agent: Agent):
@@ -326,11 +329,13 @@ class NSModel(Model):
                 if not survives:
                     self.remove_agent(agent)
                     self.num_organisms -= 1
-                elif replicates:
-                    replica = agent.replicate()
-                    self.schedule.add(replica)
-                    self.grid.place_agent(replica, (0, 0))
-                    self.num_organisms += 1
+                else:
+                    agent.age += 1
+                    if replicates:
+                        replica = agent.replicate()
+                        self.schedule.add(replica)
+                        self.grid.place_agent(replica, (0, 0))
+                        self.num_organisms += 1
 
                 agent.reset()
 

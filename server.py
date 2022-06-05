@@ -59,7 +59,7 @@ def agent_portrayal(agent: Agent):
         portrayal['xAlign'] = 0.9 - w / 2
         portrayal['yAlign'] = 0.9 - h / 2
 
-        for attr in ['speed', 'awareness', 'size', 'energy', 'trail', 'prob_survival', 'prob_replication']:
+        for attr in ['age', 'speed', 'awareness', 'size', 'energy', 'trail', 'prob_survival', 'prob_replication']:
             portrayal[attr] = agent.__dict__.get(attr)
     elif isinstance(agent, PheromoneTrail):
         offset = (agent.came_from[0] - agent.pos[0], agent.came_from[1] - agent.pos[1])
@@ -75,6 +75,16 @@ def create_server(model_args: Dict[str, Any]) -> ModularServer:
     num_organisms = GenerationChartModule(
         [{'Label': 'Organisms', 'Color': '#0000FF'}],
         data_collector_name='dc_num_organisms'
+    )
+
+    average_age = GenerationChartModule(
+        [{'Label': 'Age', 'Color': '#EE2233'}],
+        data_collector_name='dc_age'
+    )
+    hist_age = HistogramModule(
+        bins=list(range(8)),
+        attribute='age',
+        color='#EE2233'
     )
 
     properties = GenerationChartModule(
@@ -107,27 +117,30 @@ def create_server(model_args: Dict[str, Any]) -> ModularServer:
     )
 
     elements = [generation, grid, num_organisms]
-    if not (model_args['disable_speed'] and model_args['disable_awareness'] and
-        model_args['disable_size']):
+    if (
+        model_args['speed_mutation_rate'] != 0 or
+        model_args['awareness_mutation_rate'] != 0 or
+        model_args['size_mutation_rate'] != 0
+    ):
         elements.append(properties)
 
     if model_args['initial_trail'] != 0.0:
         elements.append(trail_percentage)    
 
-    if not model_args['disable_speed']:
+    if model_args['speed_mutation_rate'] != 0.0:
         elements.append(hist_speed)
 
-    if not model_args['disable_awareness']:
+    if model_args['awareness_mutation_rate'] != 0.0:
         elements.append(hist_awareness)
 
-    if not model_args['disable_size']:
+    if model_args['size_mutation_rate'] != 0.0:
         elements.append(hist_size)
 
     return ModularServer(
         NSModel,
         [
-            generation, grid, num_organisms, properties, trail_percentage,
-            hist_speed, hist_awareness, hist_size
+            generation, grid, num_organisms, average_age, hist_age, properties,
+            trail_percentage, hist_speed, hist_awareness, hist_size
         ],
         'Natural Selection Model',
         model_args

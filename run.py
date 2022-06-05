@@ -8,7 +8,7 @@ def main():
 
     parser = ArgumentParser(description='Natural selection simulation', formatter_class=formatter)
 
-    parser.add_argument('-s', metavar='S', default=None,
+    parser.add_argument('-s', '--seed', metavar='S', default=None,
         help='seed for the random number generator')
     parser.add_argument('--width', metavar='W', type=int, default=20,
         help='width of the grid world')
@@ -19,9 +19,12 @@ def main():
     parser.add_argument('-n', '--num-organisms', metavar='N', type=int, default=25,
         help='starting number of organisms')
 
-    parser.add_argument('-ds', '--disable-speed', help='disable speed mutations', action='store_true')
-    parser.add_argument('-da', '--disable-awareness', help='disable awareness mutations', action='store_true')
-    parser.add_argument('-dz', '--disable-size', help='disable size mutations', action='store_true')
+    parser.add_argument('-ms', '--speed-mutation-rate', metavar='S', type=float, default=0.08,
+        help='chance that a speed mutation will occur on replication')
+    parser.add_argument('-ma', '--awareness-mutation-rate', metavar='A', type=float, default=0.08,
+        help='chance that an awareness mutation will occur on replication')
+    parser.add_argument('-mz', '--size-mutation-rate', metavar='S', type=float, default=0.08,
+        help='chance that a size mutation will occur on replication')
 
     parser.add_argument('-is', '--initial-speed', metavar='S', type=int, default=3,
         help='speed of initial population')

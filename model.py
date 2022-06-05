@@ -35,22 +35,22 @@ class Food(Agent):
         self.amount = amount
 
 class Organism(Agent):
-    MAX_ENERGY: float = 100.0
+    MAX_ENERGY: float = 150.0
 
     MIN_SPEED: int = 1
-    MAX_SPEED: int = 5
+    MAX_SPEED: int = 6
 
     MIN_AWARENESS: int = 0
-    MAX_AWARENESS: int = 5
+    MAX_AWARENESS: int = 6
 
     MIN_SIZE: float = 0.5
     MAX_SIZE: float = 2.0
-    MAX_SIZE_MUTATION = 0.2
+    MAX_SIZE_MUTATION = 0.15
     SIZE_TO_EAT: float = 0.125
 
     MAX_TRAIL_LENGTH: int = 5
 
-    def __init__(self, model: Model, speed: int = 3, awareness: int = 1,
+    def __init__(self, model: Model, speed: int = 3, awareness: int = 2,
             size: float = 1.0, trail: bool = False):
         super().__init__(model.next_id(), model)
 
@@ -123,7 +123,7 @@ class Organism(Agent):
                 self.trail_length -= 1
 
     def move_energy(self, distance_moved: float) -> float:
-        return pow(self.size, 3) * pow(self.speed, 2) * distance_moved + self.awareness
+        return 0.5 * pow(self.size, 3) * pow(self.speed, 2) * distance_moved + self.awareness
 
     @staticmethod
     def can_eat(organism1, organism2) -> bool:
@@ -219,9 +219,9 @@ class NSModel(Model):
         self.grid = MultiGrid(width, height, torus=False)
         self.food_per_generation = food_per_generation
 
-        self.speed_mutation_rate = speed_mutation_rate
-        self.awareness_mutation_rate = awareness_mutation_rate
-        self.size_mutation_rate = size_mutation_rate
+        self.speed_mutation_rate = 0 if disable_speed else speed_mutation_rate
+        self.awareness_mutation_rate = 0 if disable_awareness else awareness_mutation_rate
+        self.size_mutation_rate = 0 if disable_size else size_mutation_rate
 
         self.schedule = RandomActivation(self)
         self.agents_to_remove = set()
@@ -241,8 +241,9 @@ class NSModel(Model):
         self.step_count = 0
 
         # Create agents
-        for _ in range(num_organisms):
-            agent = Organism(self)
+        for i in range(num_organisms):
+            trail = not disable_trail and i < num_organisms / 2
+            agent = Organism(self, trail=trail)
             self.schedule.add(agent)
 
         self.place_agents(init=True)
